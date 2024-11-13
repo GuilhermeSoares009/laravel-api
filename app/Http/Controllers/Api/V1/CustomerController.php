@@ -8,15 +8,28 @@ use App\Http\Requests\UpdateCustomerRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\CustomerResource;
 use App\Http\Resources\V1\CustomerCollection;
+use Illuminate\Http\Request;
+use App\Services\V1\CustomerQuery;
+use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return new CustomerCollection(Customer::paginate());
+        $filter = new CustomerQuery();
+        $queryItems = $filter->transform($request);
+
+        if (count($queryItems) == 0) {
+            return new CustomerCollection(Customer::paginate());
+        } else {
+            $customer = DB::select("SELECT * FROM customers WHERE type = ? AND postal_code > ? LIMIT 10", ['I', 30000]);
+
+            return new CustomerCollection(Customer::where($queryItems)->paginate());
+        }
+        return ;
     }
 
     /**
