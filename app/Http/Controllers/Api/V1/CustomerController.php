@@ -10,7 +10,6 @@ use App\Http\Resources\V1\CustomerResource;
 use App\Http\Resources\V1\CustomerCollection;
 use Illuminate\Http\Request;
 use App\Filters\V1\CustomersFilter;
-use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
@@ -20,17 +19,17 @@ class CustomerController extends Controller
     public function index(Request $request)
     {
         $filter = new CustomersFilter();
-        $queryItems = $filter->transform($request);
+        $filterItems = $filter->transform($request);
 
-        if (count($queryItems) == 0) {
-            return new CustomerCollection(Customer::paginate());
-        } else {
+        $includeInvoices = $request->query('includeInvoices');
 
-            $customers = Customer::where($queryItems)->paginate();
+        $customers = Customer::where($filterItems);
 
-            return new CustomerCollection($customers->appends($request->query()));
+        if ($includeInvoices) {
+            $customers = $customers->with('invoices');
         }
-        return ;
+
+        return new CustomerCollection($customers->paginate()->appends($request->query()));
     }
 
     /**
@@ -54,6 +53,13 @@ class CustomerController extends Controller
      */
     public function show(Customer $customer)
     {
+        $includeInvoices = request()->query('includeInvoices');
+
+        if ($includeInvoices) {
+            return new CustomerResource($customer->loadMissing('invoices'));
+        }
+
+
         return new CustomerResource($customer);
     }
 
